@@ -9,6 +9,8 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Mm]emoryCaptures/
+/AssetBundles/
+/Assets/AssetStoreTools*
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
@@ -21,6 +23,7 @@
 
 # Visual Studio cache directory
 .vs/
+.vscode/
 
 # Gradle cache directory
 .gradle/
@@ -42,8 +45,6 @@ ExportedObj/
 *.mdb
 *.opendb
 *.VC.db
-
-# Unity3D generated meta files
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
@@ -52,9 +53,17 @@ ExportedObj/
 sysinfo.txt
 
 # Builds
+*.ipa
 *.apk
 *.unitypackage
 
 # Crashlytics generated file
 crashlytics-build.properties
 
+# Hidden Files
+.DS_Store
+Thumbs.db
+
+# sed processed c# source file
+*.cs-e
+*.cs-e.meta
