@@ -1,5 +1,7 @@
 ﻿// https://ja.wikipedia.org/wiki/Salsa20#ChaCha
 
+using System;
+
 namespace Crypto
 {
     public static class ChaCha20
@@ -14,10 +16,10 @@ namespace Crypto
         }
         private const int ROUNDS = 20;
 
-        private static void ChaChaBlock(uint[] output, uint[] input)
+        private static void ChaChaBlock(Span<uint> output, Span<uint> input)
         {
             int i;
-            var x = new uint[16];
+            Span<uint> x = stackalloc uint[16];
 
             for (i = 0; i < 16; ++i)
             {
@@ -45,7 +47,7 @@ namespace Crypto
 
         private static byte[] NormalEncode(byte[] input, byte[] key, byte[] nonce)
         {
-            var state = new uint[16];
+            Span<uint> state = stackalloc uint[16];
 
             state[0] = (uint)'e' | (uint)'x' << 8 | (uint)'p' << 16 | (uint)'a' << 24; // expa
             state[1] = (uint)'n' | (uint)'d' << 8 | (uint)' ' << 16 | (uint)'3' << 24; // nd 3
@@ -66,41 +68,39 @@ namespace Crypto
             state[14] = (uint)nonce[4] | (uint)nonce[5] << 8 | (uint)nonce[6] << 16 | (uint)nonce[7] << 24;
             state[15] = (uint)nonce[8] | (uint)nonce[9] << 8 | (uint)nonce[10] << 16 | (uint)nonce[11] << 24;
 
-            using (var inputStream = new System.IO.MemoryStream(input))
-            using (var outputStream = new System.IO.MemoryStream(input.Length))
+            using var inputStream = new System.IO.MemoryStream(input);
+            using var outputStream = new System.IO.MemoryStream(input.Length);
+            var buffer = new byte[64];
+            Span<byte> output = stackalloc byte[64];
+            Span<uint> block = stackalloc uint[16];
+            var length = 0;
+            while ((length = inputStream.Read(buffer, 0, 64)) > 0)
             {
-                var buffer = new byte[64];
-                var output = new byte[64];
-                var block = new uint[16];
-                var length = 0;
-                while ((length = inputStream.Read(buffer, 0, 64)) > 0)
+                ChaChaBlock(block, state);
+
+                for (var i = 0; i < block.Length; i++)
                 {
-                    ChaChaBlock(block, state);
-
-                    for (var i = 0; i < block.Length; i++)
-                    {
-                        var value = block[i];
-                        output[i * 4] = (byte)(value & 0xff);
-                        output[i * 4 + 1] = (byte)((value >> 8) & 0xff);
-                        output[i * 4 + 2] = (byte)((value >> 16) & 0xff);
-                        output[i * 4 + 3] = (byte)((value >> 24) & 0xff);
-                    }
-
-                    for (var i = 0; i < length; i++)
-                    {
-                        outputStream.WriteByte((byte)(buffer[i] ^ output[i]));
-                    }
-
-                    state[12] += 1;
-
-                    // ulong count = 1;
-                    // count += ((ulong)state[13] << 32) | (ulong)state[12];
-                    // state[12] = (uint)(count & 0xffff_ffff);
-                    // state[13] = (uint)((count >> 32) & 0xffff_ffff);
+                    var value = block[i];
+                    output[i * 4] = (byte)(value & 0xff);
+                    output[i * 4 + 1] = (byte)((value >> 8) & 0xff);
+                    output[i * 4 + 2] = (byte)((value >> 16) & 0xff);
+                    output[i * 4 + 3] = (byte)((value >> 24) & 0xff);
                 }
 
-                return outputStream.GetBuffer();
+                for (var i = 0; i < length; i++)
+                {
+                    outputStream.WriteByte((byte)(buffer[i] ^ output[i]));
+                }
+
+                state[12] += 1;
+
+                // ulong count = 1;
+                // count += ((ulong)state[13] << 32) | (ulong)state[12];
+                // state[12] = (uint)(count & 0xffff_ffff);
+                // state[13] = (uint)((count >> 32) & 0xffff_ffff);
             }
+
+            return outputStream.GetBuffer();
         }
 
         public static byte[] Encode(byte[] input, byte[] key, byte[] nonce)
