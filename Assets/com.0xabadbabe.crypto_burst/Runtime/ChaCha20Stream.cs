@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Crypto
 {
@@ -96,10 +97,10 @@ namespace Crypto
 
         private const int ROUNDS = 20;
 
-        private static void ChaChaBlock(uint[] output, uint[] input)
+        private static void ChaChaBlock(Span<uint> output, Span<uint> input)
         {
             int i;
-            var x = new uint[16];
+            Span<uint> x = stackalloc uint[16];
 
             for (i = 0; i < 16; ++i)
             {
@@ -127,11 +128,11 @@ namespace Crypto
 
         private void Encode(byte[] input, int offset, int count, long position)
         {
-            var state = new uint[16];
+            Span<uint> state = stackalloc uint[16];
             var blockCounter = position / 64;
-            var keyPosition = position % 64;
+            var keyPosition = (int)(position % 64);
             var init = false;
-            var output = new byte[64];
+            Span<byte> output = stackalloc byte[64];
 
             state[0] = (uint)'e' | (uint)'x' << 8 | (uint)'p' << 16 | (uint)'a' << 24; // expa
             state[1] = (uint)'n' | (uint)'d' << 8 | (uint)' ' << 16 | (uint)'3' << 24; // nd 3
